@@ -76,7 +76,10 @@ input, select { font: inherit; padding: .6rem .7rem; border: 1.5px dashed var(--
 @media (max-width: 640px) {
   .nav { padding: .6rem 1rem; }
   .nav-links { width: 100%; justify-content: space-between; }
-  .nav-links a { padding: .4rem .7rem; font-size: .92rem; }
+  .nav-links a { padding: .4rem .6rem; font-size: .92rem; }
+}
+@media (max-width: 360px) {
+  .nav-links a { padding: .4rem .45rem; font-size: .85rem; }
   .page { padding: 1rem; }
   .hero { margin: -1rem -1rem 0; }
   .card { grid-template-columns: 84px 1fr; }

@@ -4,7 +4,12 @@ import Thumb from "../components/Thumb.jsx";
 import providers from "../data/providers.js";
 import { stars } from "../utils.js";
 
-const tabs = ["Services", "Schedule", "Reviews", "Map"];
+const tabs = [
+  { id: 1, name: "Services" },
+  { id: 2, name: "Schedule" },
+  { id: 3, name: "Reviews" },
+  { id: 4, name: "Map" },
+];
 
 export default function ProviderDetails() {
   const { id } = useParams();
@@ -41,7 +46,7 @@ export default function ProviderDetails() {
 
       <div className="tabs" role="tablist">
         {tabs.map((t) => (
-          <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? "tab on" : "tab"} onClick={() => setTab(t)}>{t}</button>
+          <button key={t.id} role="tab" aria-selected={tab === t.name} className={tab === t.name ? "tab on" : "tab"} onClick={() => setTab(t.name)}>{t.name}</button>
         ))}
       </div>
       <div className="panel">
