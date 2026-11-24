@@ -11,7 +11,7 @@ function todayValue() {
 }
 
 function initialValues(profile) {
-  return { name: profile.name, email: profile.email, provider_id: "", service_id: "", date: "", time: "", place: "facility", notes: "" };
+  return { name: profile.name, email: profile.email, provider_id: "", service_id: "", instructor_id: "", date: "", time: "", place: "facility", notes: "" };
 }
 
 /** Optional choices handed over from a provider page; anything that doesn't fit the form is dropped. */
@@ -21,6 +21,7 @@ function withPrefill(values, prefill, providers) {
   if (!provider) return values;
   const next = { ...values, provider_id: String(provider.id) };
   if (provider.services.some((item) => String(item.id) === String(prefill.service_id))) next.service_id = String(prefill.service_id);
+  if ((provider.instructors || []).some((item) => String(item.id) === String(prefill.instructor_id))) next.instructor_id = String(prefill.instructor_id);
   if (/^\d{4}-\d{2}-\d{2}$/.test(prefill.date || "") && prefill.date >= todayValue()) next.date = prefill.date;
   if (TIMES.includes(prefill.time)) next.time = prefill.time;
   next.place = prefill.place === "home" && provider.home_visit ? "home" : "facility";
@@ -82,6 +83,7 @@ export default function BookingForm({ providers, prefill }) {
   const { values, errors } = state;
   const selectedProvider = providers.find((provider) => String(provider.id) === values.provider_id);
   const services = selectedProvider?.services || [];
+  const instructors = selectedProvider?.instructors || [];
   const error = (field) => errors[field];
   const invalid = (field, id) => ({ "aria-invalid": Boolean(error(field)), "aria-describedby": error(field) ? id : undefined });
   const errorText = (field, id) => error(field) && <span className="field-error" id={id}>{error(field)}</span>;
@@ -91,6 +93,7 @@ export default function BookingForm({ providers, prefill }) {
     const nextValues = { ...values, [name]: value };
     if (name === "provider_id") {
       nextValues.service_id = "";
+      nextValues.instructor_id = "";
       const nextProvider = providers.find((provider) => String(provider.id) === value);
       if (!nextProvider?.home_visit) nextValues.place = "facility";
     }
@@ -107,17 +110,19 @@ export default function BookingForm({ providers, prefill }) {
 
     const provider = providers.find((item) => String(item.id) === values.provider_id);
     const service = provider.services.find((item) => String(item.id) === values.service_id);
+    const instructor = (provider.instructors || []).find((item) => String(item.id) === values.instructor_id);
     dispatchBooking({ type: "booking/requested", booking: {
       id: newBookingId(),
       provider_id: provider.id,
       provider_name: provider.name,
       service_name: service.name,
+      instructor_name: instructor?.name || "",
       date: values.date,
       time: values.time,
       place: values.place === "home" ? "Home visit" : "Provider facility",
       status: "pending",
     } });
-    dispatch({ type: "created", values: initialValues(profileState.profile), notice: "Added to your bookings for this session." });
+    dispatch({ type: "created", values: initialValues(profileState.profile), notice: "Booking added and saved on this device." });
   };
 
   return <form className="booking-form" onSubmit={submit} noValidate>
@@ -127,6 +132,7 @@ export default function BookingForm({ providers, prefill }) {
       <label className="field" htmlFor="booking-email"><span className="field-label">Email address</span><input id="booking-email" name="email" type="email" autoComplete="email" value={values.email} onChange={change} required {...invalid("email", "booking-error-email")} />{errorText("email", "booking-error-email")}</label>
       <label className="field span2" htmlFor="booking-provider"><span className="field-label">Provider</span><select id="booking-provider" name="provider_id" value={values.provider_id} onChange={change} required {...invalid("provider_id", "booking-error-provider")}><option value="">Choose a provider</option>{providers.map((provider) => <option key={provider.id} value={provider.id}>{provider.name}</option>)}</select>{errorText("provider_id", "booking-error-provider")}</label>
       <label className="field span2" htmlFor="booking-service"><span className="field-label">Lesson</span><select id="booking-service" name="service_id" value={values.service_id} onChange={change} required disabled={!selectedProvider} {...invalid("service_id", "booking-error-service")}><option value="">{selectedProvider ? "Choose a lesson" : "Choose a provider first"}</option>{services.map((service) => <option key={service.id} value={service.id}>{service.name} · AED {service.price}</option>)}</select>{errorText("service_id", "booking-error-service")}</label>
+      <label className="field span2" htmlFor="booking-instructor"><span className="field-label">Instructor (optional)</span><select id="booking-instructor" name="instructor_id" value={values.instructor_id} onChange={change} disabled={!selectedProvider}><option value="">{selectedProvider ? "Any available coach" : "Choose a provider first"}</option>{instructors.map((inst) => <option key={inst.id} value={inst.id}>{inst.name} ({inst.experience_years} yrs)</option>)}</select></label>
       <label className="field" htmlFor="booking-date"><span className="field-label">Requested date</span><input id="booking-date" name="date" type="date" min={todayValue()} value={values.date} onChange={change} required {...invalid("date", "booking-error-date")} />{errorText("date", "booking-error-date")}</label>
       <label className="field" htmlFor="booking-time"><span className="field-label">Requested time</span><select id="booking-time" name="time" value={values.time} onChange={change} required {...invalid("time", "booking-error-time")}><option value="">Choose a time</option>{TIMES.map((time) => <option key={time} value={time}>{time}</option>)}</select>{errorText("time", "booking-error-time")}</label>
       <label className="field span2" htmlFor="booking-place"><span className="field-label">Lesson location</span><select id="booking-place" name="place" value={values.place} onChange={change} required {...invalid("place", "booking-error-place")}><option value="facility">Provider facility</option>{selectedProvider?.home_visit && <option value="home">Home visit</option>}</select>{errorText("place", "booking-error-place")}</label>

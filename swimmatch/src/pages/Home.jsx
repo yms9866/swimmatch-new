@@ -1,7 +1,7 @@
 import { Link, Form, useLoaderData } from "react-router";
 import Icon from "../components/Icon.jsx";
 import { SaveButton } from "../components/ProviderCard.jsx";
-import { getAllInstructors, getProviders, matchingPrice } from "../services/providers.js";
+import { matchingPrice } from "../services/providers.js";
 import { PHOTOS, providerPhoto, maskFor } from "../lib/media.js";
 
 const place = (provider) => [provider.area, provider.city].filter(Boolean).join(" · ");
@@ -240,16 +240,4 @@ export default function Home() {
       )}
     </>
   );
-}
-
-export async function homeLoader({ request }) {
-  const [providers, instructors] = await Promise.all([
-    getProviders(request.signal),
-    // The coach feature is optional: the page still loads if this request fails.
-    getAllInstructors(request.signal).catch((error) => {
-      if (error.name === "AbortError") throw error;
-      return null;
-    }),
-  ]);
-  return { providers, instructors };
 }

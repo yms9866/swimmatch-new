@@ -40,6 +40,7 @@ export default function ProviderCard({ provider, price, index = 0, topRated = fa
           <span className="rate"><span className="star" aria-hidden="true">{stars(provider.rating)}</span> {provider.rating}{provider.reviews_count > 0 && <span className="muted"> ({provider.reviews_count})</span>}</span>
           {lessonTypes.map((type) => <span className="chip chip-sm" key={type}>{type}</span>)}
           {provider.home_visit && <span className="chip chip-sm chip-dark">Home visit</span>}
+          {Number.isFinite(provider.distanceKm) && <span className="chip chip-sm">{provider.distanceKm.toFixed(1)} km away</span>}
         </div>
       </div>
       <div className="res-side">

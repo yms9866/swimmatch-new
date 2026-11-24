@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { RouterProvider } from "react-router/dom";
-import { router } from "./App.jsx";
+import { router } from "./router.jsx";
 import { ProfileProvider } from "./context/ProfileContext.jsx";
 import { SavedProvidersProvider } from "./context/SavedProvidersContext.jsx";
 import "./index.css";

@@ -1,7 +1,6 @@
 import { Link, useLoaderData } from "react-router";
 import ProviderCard from "../components/ProviderCard.jsx";
 import Icon from "../components/Icon.jsx";
-import { getProviders } from "../services/providers.js";
 import { useSavedProviders } from "../context/SavedProvidersContext.jsx";
 
 function EmptyLane({ title, text }) {
@@ -45,8 +44,4 @@ export default function Saved() {
           : <EmptyLane title="Gone quiet." text="Some saved providers are no longer listed. They’ll appear here again if they return to the directory." />}
     </section>
   );
-}
-
-export function savedLoader({ request }) {
-  return getProviders(request.signal);
 }

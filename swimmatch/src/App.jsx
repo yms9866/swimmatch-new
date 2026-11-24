@@ -1,23 +1,8 @@
 import { useEffect } from "react";
-import { createBrowserRouter, Link, Outlet, useLocation, useNavigation } from "react-router";
+import { Link, Outlet, useLocation, useNavigation } from "react-router";
 import Navbar from "./components/Navbar.jsx";
-import RouteError from "./components/RouteError.jsx";
 import Logo from "./components/Logo.jsx";
 import Icon from "./components/Icon.jsx";
-import Home, { homeLoader } from "./pages/Home.jsx";
-import Search, { searchLoader, shouldRevalidateSearch } from "./pages/Search.jsx";
-import ProviderDetails, { providerDetailsLoader } from "./pages/ProviderDetails.jsx";
-import Bookings, { bookingsLoader, shouldRevalidateBookings } from "./pages/Bookings.jsx";
-import Profile from "./pages/Profile.jsx";
-import Services, { servicesLoader } from "./pages/Services.jsx";
-import Instructors, { instructorsLoader } from "./pages/Instructors.jsx";
-import NotFound from "./pages/NotFound.jsx";
-import Saved, { savedLoader } from "./pages/Saved.jsx";
-import { BookingProvider } from "./context/BookingContext.jsx";
-
-function BookingsRoute() {
-  return <BookingProvider><Bookings /></BookingProvider>;
-}
 
 const year = new Date().getFullYear();
 
@@ -66,6 +51,7 @@ function CompactFooter() {
   );
 }
 
+// Shared page shell: nav, main outlet, footer. The route table is in router.jsx.
 function AppLayout() {
   const navigation = useNavigation();
   const loading = navigation.state === "loading";
@@ -83,26 +69,6 @@ function AppLayout() {
     </main>
     {pathname === "/" ? <BigFooter /> : <CompactFooter />}
   </>;
-}
-
-export const router = createBrowserRouter([{
-  Component: AppLayout,
-  children: [
-    { index: true, Component: Home, loader: homeLoader, errorElement: <RouteError /> },
-    { path: "search", Component: Search, loader: searchLoader, shouldRevalidate: shouldRevalidateSearch, errorElement: <RouteError /> },
-    { path: "services", Component: Services, loader: servicesLoader, shouldRevalidate: shouldRevalidateDirectory, errorElement: <RouteError /> },
-    { path: "instructors", Component: Instructors, loader: instructorsLoader, shouldRevalidate: shouldRevalidateDirectory, errorElement: <RouteError /> },
-    { path: "providers/:id", Component: ProviderDetails, loader: providerDetailsLoader, errorElement: <RouteError /> },
-    { path: "bookings", Component: BookingsRoute, loader: bookingsLoader, shouldRevalidate: shouldRevalidateBookings, errorElement: <RouteError /> },
-    { path: "profile", Component: Profile },
-    { path: "saved", Component: Saved, loader: savedLoader, shouldRevalidate: shouldRevalidateDirectory, errorElement: <RouteError /> },
-    { path: "*", Component: NotFound },
-  ],
-}]);
-
-function shouldRevalidateDirectory({ currentUrl, nextUrl, formMethod, defaultShouldRevalidate }) {
-  if (formMethod || currentUrl.pathname !== nextUrl.pathname) return defaultShouldRevalidate;
-  return false;
 }
 
 export default AppLayout;

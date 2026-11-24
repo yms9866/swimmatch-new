@@ -13,19 +13,19 @@ function parts(date) {
 }
 
 /** Ticket-style booking: tear-off date stub, perforation, details. */
-export default function BookingCard({ provider_id, provider_name, service_name, date, time, place, status, area }) {
+export default function BookingCard({ provider_id, provider_name, service_name, instructor_name, date, time, place, status, area }) {
   const state = String(status).toLowerCase();
   const tone = state === "confirmed" ? "confirmed" : state === "completed" || state === "cancelled" ? "done" : "pending";
   const when = parts(date);
   const label = status ? status.charAt(0).toUpperCase() + status.slice(1) : "";
-  const placeLine = [place, area].filter(Boolean).join(" · ");
+  const placeLine = [instructor_name ? `Coach ${instructor_name}` : "", place, area].filter(Boolean).join(" · ");
 
   if (tone === "done") {
     return (
       <article className="ticket done">
         <div className="stub">{when ? <><span className="d">{when.day}</span><span className="m">{when.weekday} · {when.month}</span></> : <span className="m">{date}</span>}</div>
         <div className="main">
-          <div><h2><Link to={`/providers/${provider_id}`} className="stretch">{provider_name}</Link></h2><p className="m">{[service_name, time, place].filter(Boolean).join(" · ")}</p></div>
+          <div><h2><Link to={`/providers/${provider_id}`} className="stretch">{provider_name}</Link></h2><p className="m">{[service_name, instructor_name ? `Coach ${instructor_name}` : "", time, place].filter(Boolean).join(" · ")}</p></div>
           <span className="m status">{label}</span>
         </div>
       </article>

@@ -1,5 +1,4 @@
 import { useLoaderData, useSearchParams } from "react-router";
-import { getBookings, getProviders } from "../services/providers.js";
 import BookingCard from "../components/BookingCard.jsx";
 import BookingForm from "../components/BookingForm.jsx";
 import Icon from "../components/Icon.jsx";
@@ -15,8 +14,11 @@ export default function Bookings() {
   const { bookings: requestedBookings } = useBookings();
   const [params, setParams] = useSearchParams();
   const formOpen = params.get("create") === "1";
-  const prefill = {
-    provider_id: params.get("provider"), service_id: params.get("service"),
+  // Booking links use provider_id / service_id (older provider / service links still work).
+const prefill = {
+    provider_id: params.get("provider_id") ?? params.get("provider"),
+    service_id: params.get("service_id") ?? params.get("service"),
+    instructor_id: params.get("instructor_id") ?? params.get("instructor"),
     date: params.get("date"), time: params.get("time"), place: params.get("place"),
   };
   const areas = new Map(providers.map((provider) => [provider.id, [provider.area, provider.city].filter(Boolean).join(", ")]));
@@ -32,7 +34,7 @@ export default function Bookings() {
 
   const toggleForm = () => setParams((current) => {
     const next = new URLSearchParams(current);
-    if (formOpen) ["create", "provider", "service", "date", "time", "place"].forEach((key) => next.delete(key));
+    if (formOpen) ["create", "provider_id", "service_id", "provider", "service", "date", "time", "place"].forEach((key) => next.delete(key));
     else next.set("create", "1");
     return next;
   }, { replace: true });
@@ -45,6 +47,7 @@ export default function Bookings() {
           <button className="btn" type="button" aria-expanded={formOpen} aria-controls="booking-request-form" onClick={toggleForm}>
             <Icon name={formOpen ? "close" : "plus"} size={20} stroke={2.4} />{formOpen ? "Close form" : "New request"}
           </button>
+          <p className="acct-sub">Request a lesson and keep track of it here. Your requests are saved on this device.</p>
         </div>
 
         {all.length ? <div className="tickets" aria-live="polite">
@@ -60,20 +63,4 @@ export default function Bookings() {
       </div>
     </section>
   );
-}
-
-export function bookingsLoader({ request }) {
-  return Promise.all([
-    getBookings(request.signal),
-    getProviders(request.signal),
-  ]).then(([bookings, providers]) => ({ bookings, providers }));
-}
-
-export function shouldRevalidateBookings(args) {
-  return shouldRevalidateDirectory(args);
-}
-
-function shouldRevalidateDirectory({ currentUrl, nextUrl, formMethod, defaultShouldRevalidate }) {
-  if (formMethod || currentUrl.pathname !== nextUrl.pathname) return defaultShouldRevalidate;
-  return false;
 }

@@ -1,12 +1,13 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLoaderData, useSearchParams } from "react-router";
 import ProviderCard from "../components/ProviderCard.jsx";
 import Icon from "../components/Icon.jsx";
-import { filterProviders, getProviders, matchingPrice } from "../services/providers.js";
+import Segmented from "../components/Segmented.jsx";
+import { filterProviders, getAllInstructors, getDistanceKm, matchingPrice } from "../services/providers.js";
 import { useProfile } from "../context/ProfileContext.jsx";
 import { PHOTOS } from "../lib/media.js";
+import { FILTER_FIELDS } from "../routes/loaders.js";
 
-const FILTER_FIELDS = ["level", "type", "budget", "location", "day", "where"];
 const PAGE = 10;
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -18,28 +19,8 @@ function readFilters(params, profile = {}) {
     location: params.has("location") ? params.get("location") : profile.location || "",
     day: params.get("day") || "",
     where: params.get("where") || "",
+    gender: params.get("gender") || "",
   };
-}
-
-export function searchLoader({ request }) {
-  const params = new URL(request.url).searchParams;
-  const filters = Object.fromEntries(FILTER_FIELDS.map((field) => [field, params.get(field) || ""]));
-  return getProviders(request.signal, filters);
-}
-
-export function shouldRevalidateSearch({ currentUrl, nextUrl, formMethod, defaultShouldRevalidate }) {
-  if (formMethod || currentUrl.pathname !== nextUrl.pathname) return defaultShouldRevalidate;
-  return FILTER_FIELDS.some((field) => currentUrl.searchParams.get(field) !== nextUrl.searchParams.get(field));
-}
-
-function Segmented({ label, name, value, options, onChange, tone = "" }) {
-  return (
-    <div className={`seg ${tone}`} role="group" aria-label={label}>
-      {options.map(([optionValue, text]) => (
-        <button key={text} type="button" aria-pressed={value === optionValue} onClick={() => onChange(name, optionValue)}>{text}</button>
-      ))}
-    </div>
-  );
 }
 
 export default function Search() {
@@ -51,15 +32,46 @@ export default function Search() {
   const sort = params.get("sort") || "best";
   const visible = Math.max(PAGE, Number(params.get("count")) || PAGE);
 
+  const [userCoords, setUserCoords] = useState(null);
+  const [locating, setLocating] = useState(false);
+  const [instructorsByProvider, setInstructorsByProvider] = useState(() => new Map());
+
+  useEffect(() => {
+    if (!filters.gender || instructorsByProvider.size > 0) return;
+    const controller = new AbortController();
+    getAllInstructors(controller.signal)
+      .then((list) => {
+        const grouped = new Map();
+        for (const inst of list) {
+          const items = grouped.get(inst.provider_id) || [];
+          items.push(inst);
+          grouped.set(inst.provider_id, items);
+        }
+        setInstructorsByProvider(grouped);
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, [filters.gender, instructorsByProvider.size]);
+
   const results = useMemo(() => {
     const term = query.trim().toLowerCase();
-    const matches = filterProviders(providers, filters).filter((provider) =>
+    const matches = filterProviders(providers, filters, instructorsByProvider).filter((provider) =>
       !term || `${provider.name} ${provider.description || ""} ${provider.city} ${provider.area} ${provider.services.map((service) => `${service.name} ${service.description || ""}`).join(" ")}`
         .toLowerCase().includes(term));
-    return matches.sort((a, b) => sort === "price"
-      ? matchingPrice(a, filters) - matchingPrice(b, filters)
-      : b.rating - a.rating);
-  }, [providers, filters.level, filters.type, filters.budget, filters.location, filters.day, filters.where, sort, query]);
+
+    return matches
+      .map((provider) => ({
+        ...provider,
+        distanceKm: userCoords
+          ? getDistanceKm(userCoords.lat, userCoords.lng, provider.location?.latitude, provider.location?.longitude)
+          : null,
+      }))
+      .sort((a, b) => {
+        if (sort === "price") return matchingPrice(a, filters) - matchingPrice(b, filters);
+        if (sort === "distance" && userCoords) return a.distanceKm - b.distanceKm;
+        return b.rating - a.rating;
+      });
+  }, [providers, filters.level, filters.type, filters.budget, filters.location, filters.day, filters.where, filters.gender, instructorsByProvider, sort, query, userCoords]);
 
   const updateParam = (key, value) => {
     setParams((current) => {
@@ -72,6 +84,25 @@ export default function Search() {
     }, { replace: true });
   };
 
+  const handleSortChange = (key, value) => {
+    if (value === "distance" && !userCoords && "geolocation" in navigator) {
+      setLocating(true);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          setLocating(false);
+          updateParam(key, value);
+        },
+        () => {
+          setLocating(false);
+          alert("Please allow location access to sort by closest distance.");
+        }
+      );
+      return;
+    }
+    updateParam(key, value);
+  };
+
   const changeFilter = (event) => updateParam(event.target.name, event.target.value);
 
   const clearAll = () => setParams(() => {
@@ -81,7 +112,10 @@ export default function Search() {
   }, { replace: true });
 
   const summary = [
-    filters.level, filters.type, filters.day,
+    filters.level,
+    filters.type,
+    filters.gender === "female" ? "Female coach" : filters.gender === "male" ? "Male coach" : "",
+    filters.day,
     filters.where === "home" ? "Home visit" : filters.where === "facility" ? "Facility" : "",
     filters.budget ? `up to AED ${filters.budget}` : "",
   ].filter(Boolean).join(" · ");
@@ -95,7 +129,7 @@ export default function Search() {
         <img className="corner" src={PHOTOS.aerial.src} alt="" />
         <div className="in">
           <h1 className="d title-xl rise"><span className="chl">{providers.length}</span> places<br />to swim.</h1>
-          <p className="m sub">Across Dubai, Abu Dhabi &amp; Sharjah · sorted by {sort === "price" ? "price" : "rating"}</p>
+          <p className="m sub">Across Dubai, Abu Dhabi &amp; Sharjah · sorted by {sort === "price" ? "price" : sort === "distance" ? "closest distance" : "rating"}</p>
 
           <div className="filter-lane" role="search" aria-label="Search filters">
             <div className="fl-row">
@@ -128,6 +162,9 @@ export default function Search() {
               <span className="m">Where</span>
               <Segmented label="Home visit or facility" name="where" value={filters.where} onChange={updateParam}
                 options={[["", "Either"], ["home", "Home visit"], ["facility", "Facility"]]} />
+              <span className="m">Gender</span>
+              <Segmented label="Coach gender" name="gender" value={filters.gender} onChange={updateParam}
+                options={[["", "Any"], ["female", "Female"], ["male", "Male"]]} />
               <button type="button" className="clear-btn" onClick={clearAll}>Clear all</button>
             </div>
           </div>
@@ -143,8 +180,18 @@ export default function Search() {
             <Icon name="search" size={18} />
             <input id="provider-search" type="search" value={query} onChange={(event) => updateParam("q", event.target.value)} placeholder="Search lessons or schools" aria-label="Search providers or lessons" />
           </label>
-          <Segmented label="Sort" name="sort" value={sort} tone="seg-sun" onChange={updateParam}
-            options={[["best", "★ Highest rated"], ["price", "Lowest price"]]} />
+          <Segmented
+            label="Sort"
+            name="sort"
+            value={sort}
+            tone="seg-sun"
+            onChange={handleSortChange}
+            options={[
+              ["best", "★ Highest rated"],
+              ["price", "Lowest price"],
+              ["distance", locating ? "Locating…" : "Closest distance"],
+            ]}
+          />
         </div>
       </div>
       <div className="rope ink" aria-hidden="true" />

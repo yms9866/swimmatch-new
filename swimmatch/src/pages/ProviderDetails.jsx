@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Link, useLoaderData, useNavigate } from "react-router";
+import { Link, useLoaderData, useNavigate, useSearchParams } from "react-router";
 import Icon from "../components/Icon.jsx";
 import { useSavedProviders } from "../context/SavedProvidersContext.jsx";
-import { getAvailability, getInstructors, getProvider } from "../services/providers.js";
+import { resolveCoachGender } from "../services/providers.js";
 import { initials, stars } from "../utils.js";
 import { PHOTOS, providerGallery } from "../lib/media.js";
 
@@ -32,11 +32,15 @@ export default function ProviderDetails() {
   const [tab, setTab] = useState("Services");
   const provider = useLoaderData();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const location = provider.location || {};
   const services = provider.services || [];
   const availability = provider.availability || [];
-  const instructors = provider.instructors || [];
+  const genderFilter = (searchParams.get("gender") || "").toLowerCase();
+  const instructors = (provider.instructors || []).filter(
+    (inst) => !genderFilter || resolveCoachGender(inst) === genderFilter
+  );
   const reviews = provider.reviews || [];
   const hasMap = Number.isFinite(location.latitude) && Number.isFinite(location.longitude);
   const delta = 0.01;
@@ -47,6 +51,8 @@ export default function ProviderDetails() {
 
   const [serviceId, setServiceId] = useState(services[0]?.id ?? null);
   const service = services.find((item) => item.id === serviceId) || services[0];
+  const [instructorId, setInstructorId] = useState(instructors[0]?.id ?? "");
+  const selectedInstructor = instructors.find((item) => String(item.id) === String(instructorId)) || instructors[0];
   const slots = availability
     .slice()
     .sort((a, b) => nextDateFor(a.day).localeCompare(nextDateFor(b.day)))
@@ -57,8 +63,9 @@ export default function ProviderDetails() {
 
   // Hands the choice to the existing booking request form on /bookings.
   const requestBooking = () => {
-    const params = new URLSearchParams({ create: "1", provider: String(provider.id), place });
-    if (service) params.set("service", String(service.id));
+    const params = new URLSearchParams({ create: "1", provider_id: String(provider.id), place });
+    if (service) params.set("service_id", String(service.id));
+    if (selectedInstructor) params.set("instructor_id", String(selectedInstructor.id));
     if (slot) { params.set("date", slot.date); params.set("time", slot.time); }
     navigate(`/bookings?${params}`);
   };
@@ -167,6 +174,18 @@ export default function ProviderDetails() {
             <div><p>{service.name}</p><p className="m">{cap(service.type)} · {service.duration_minutes} min</p></div>
             <div className="pr"><span className="m">{service.currency || "AED"}</span><span className="d">{service.price}</span></div>
           </div>}
+          {instructors.length > 0 && (
+            <label className="dk-field">
+              <span className="m">Instructor</span>
+              <select value={selectedInstructor?.id ?? ""} onChange={(event) => setInstructorId(event.target.value)}>
+                {instructors.map((inst) => (
+                  <option key={inst.id} value={inst.id}>
+                    {inst.name} ({inst.experience_years} yrs)
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           {slots.length > 0 && (
             <label className="dk-field">
               <span className="m">Date &amp; time</span>
@@ -211,19 +230,4 @@ function SaveToggle({ provider }) {
       <Icon name="heart" size={18} filled={isSaved} />{isSaved ? "Saved" : "Save provider"}
     </button>
   );
-}
-
-export async function providerDetailsLoader({ request, params }) {
-  let provider;
-  try {
-    provider = await getProvider(params.id, request.signal);
-  } catch (error) {
-    if (error.status === 404) throw new Response("Provider not found", { status: 404 });
-    throw error;
-  }
-  const [availability, instructors] = await Promise.all([
-    getAvailability(params.id, request.signal),
-    getInstructors(params.id, request.signal),
-  ]);
-  return { ...provider, availability, instructors };
 }

@@ -935,3 +935,55 @@ ul, ol { padding: 0; list-style: none; }
 .form-panel .fgrid { grid-template-columns: 1fr; }
 .form-panel .fgrid .span2 { grid-column: auto; }
 .form-panel .form-actions .btn { width: 100%; }
+
+/* ---------- First-load screen and error actions (stage 3) ---------- */
+.app-loading { min-height: 62vh; display: flex; flex-direction: column; justify-content: center; gap: 22px; padding-top: 40px; padding-bottom: 80px; }
+.app-loading .d { font-size: clamp(48px, 7vw, 96px); }
+.app-loading .m { font-size: 12px; font-weight: 700; color: var(--teal); }
+.app-loading .rope { max-width: 560px; }
+.status-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 32px; }
+.status-actions .btn { margin-top: 0; }
+
+/* ---------- Bookings subtitle (stage 5) ---------- */
+/* always on its own row (so the heading and "New request" button keep their places); text limited to ~560px */
+.acct-sub { flex: 0 0 100%; padding-right: max(0px, calc(100% - 560px)); font-size: 18px; line-height: 1.5; color: var(--slate); }
+@media (max-width: 720px) { .acct-sub { font-size: 16px; } }
+
+/* ---------- Directory filters + Book buttons on cards (stages 6-7) ---------- */
+.dir-filters { margin-top: 36px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.dir-filters > .m { font-size: 11px; color: var(--slate); margin: 0 2px 0 10px; }
+.dir-filters > .m:first-child { margin-left: 0; }
+.dir-filters .seg { box-shadow: inset 0 0 0 1px rgba(4, 38, 58, .08); }
+.dir-select { display: inline-flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 16px; border-radius: 999px; background: var(--white); box-shadow: inset 0 0 0 1px rgba(4, 38, 58, .08); color: var(--teal); }
+.dir-select .m { font-size: 11px; color: var(--slate); }
+.dir-select select { border: 0; outline: 0; background: transparent; font-weight: 600; font-size: 15px; color: var(--deep); padding: 0; max-width: 220px; }
+.btn-sm { min-height: 44px; padding: 0 18px; border-radius: 14px; font-size: 15px; gap: 8px; }
+/* a button that sits above a card's stretched link */
+.on-card { position: relative; z-index: 2; flex: none; }
+.lesson .nm b a:focus-visible { outline: none; }
+.lesson:has(.stretch:focus-visible) { box-shadow: inset 0 0 0 3px var(--coral); }
+@media (max-width: 720px) {
+  .dir-filters { margin-top: 24px; gap: 8px; }
+  .dir-filters > .m { margin: 6px 0 0; flex-basis: 100%; }
+  .dir-filters .seg { display: grid; grid-auto-flow: column; grid-auto-columns: auto; width: 100%; }
+  .dir-filters .seg button { padding: 10px 6px; font-size: 13.5px; }
+  .dir-select { flex: 1 1 100%; justify-content: space-between; }
+  .dir-select select { flex: 1; max-width: none; text-align: right; text-align-last: right; }
+  .dir-filters .clear-btn { margin-left: 0; }
+  .lesson .on-card { margin-left: auto; }
+}
+
+/* Coaches: Book pill on each tile */
+.spec + .dir-filters { margin-top: 12px; }
+.ct-book { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; min-height: 34px; padding: 0 14px; border-radius: 999px; background: var(--white); color: var(--deep); box-shadow: inset 0 0 0 1.5px rgba(4, 38, 58, .15); font-weight: 700; font-size: 13px; transition: transform .2s; }
+.ct-book:hover { transform: translateY(-2px); }
+.ct-competitive .ct-book { background: var(--chlorine); box-shadow: none; }
+.ct-adult .ct-book, .ct-other .ct-book { background: var(--deep); color: var(--white); box-shadow: none; }
+.ct-big .ct-book { margin-top: 16px; background: var(--coral); color: var(--deep); box-shadow: none; }
+.ct h2 a, .ct h3 a { color: inherit; }
+.ct:has(.stretch:focus-visible) { box-shadow: inset 0 0 0 3px var(--coral); }
+.ct .stretch:focus-visible { outline: none; }
+@media (max-width: 720px) {
+  .ct-book { margin-top: 8px; min-height: 30px; padding: 0 12px; font-size: 12px; }
+  .spec + .dir-filters { margin-top: 10px; }
+}
